@@ -1,68 +1,37 @@
 # ARC: Age and Role Curves
 
-ARC is a historical fantasy football cohort engine designed for research-grade analysis of player outcomes over time. It is built to model how players perform relative to peers grouped by **position**, **career year**, and **age bucket**.
-
-## Why ARC exists
-
-Most fantasy analyses over-index on raw age. ARC treats **career year as the primary axis** because it better reflects football development windows (learning curve, role growth, workload accumulation, and survivorship effects). Age remains important as a **secondary normalization layer** so we can separate a Year-3 player at age 22 from a Year-3 player at age 25.
-
-The goal is cohort intelligence, not hot takes:
-- Historical player-season cohort tables
-- Historical player-week outcome tables
-- Cohort baseline summaries
-- Trajectory/deviation scores versus cohort expectations
-
-ARC is intended to power downstream tools such as player pages, dynasty outlook frameworks, and trajectory analysis workflows.
-
-## What PR1 includes
-
-PR1 bootstraps the repository as a clean Python package and research workspace:
-- `src/arc` package scaffold with typed models and placeholder analysis modules
-- Config stubs for positions, buckets, and thresholds
-- Lightweight CLI entrypoint for package validation
-- Documentation for methodology, metric definitions, and roadmap
-- Data/output directory structure for future ETL and exports
-- Minimal import test coverage to confirm scaffold integrity
-
-This PR intentionally does **not** implement heavy ingestion, full historical processing, or production scoring logic.
-
-## Planned canonical tables
-
-ARC will standardize downstream work around these canonical tables:
-
-1. `arc_player_seasons`
-   - One row per player-season with age/career metadata and season-level outcomes.
-2. `arc_player_weeks`
-   - One row per player-week with weekly finishes and event flags (spike/dud).
-3. `arc_cohort_baselines`
-   - Cohort summaries by position + career year + age bucket.
-4. `arc_trajectory_scores`
-   - Expected-vs-actual deltas and relative trajectory labels.
-
-## High-level roadmap
-
-- **PR2:** Build player-season and player-week historical cohort tables.
-- **PR3:** Compute cohort baselines by position/career-year/age-bucket slices.
-- **PR4:** Add trajectory scoring, percentile framing, and deviation labels.
-
-## Future directions
-
-Potential expansions beyond core PR1–PR4:
-- Draft capital context layers
-- Usage archetypes (target share, touch share, role clusters)
-- Next-year hit rate modeling
-- Comparable player trajectory engine
+ARC is a historical fantasy football cohort engine designed for research-grade analysis of player outcomes over time. It models performance relative to peers grouped by **position**, **career year**, and **age bucket**.
 
 ## Quick start
+
+1. Place raw weekly player history under `data/raw/`.
+   - Default path: `data/raw/player_weekly_history.csv`
+   - Supported formats: `.csv` and `.parquet`
+2. Run cohort build:
+
+```bash
+python -m arc.cli build-cohorts --input data/raw/player_weekly_history.csv
+```
+
+3. Outputs are written to `outputs/cohort_tables/`:
+   - `arc_player_weeks.csv`
+   - `arc_player_seasons.csv`
+   - parquet mirrors when a parquet engine (for example `pyarrow`) is installed
+
+Other useful commands:
 
 ```bash
 python -m arc.cli info
 python -m arc.cli validate-config
 ```
 
-Or install and use console script:
+## Canonical ARC tables
 
-```bash
-pip install -e .
-arc info
-```
+- `arc_player_weeks`: one row per player-week including weekly positional finish and spike/dud flags.
+- `arc_player_seasons`: one row per player-season including games played, season points, ppg, and seasonal positional finish.
+
+## Roadmap
+
+- **PR2:** Build historical player-week and player-season cohort tables.
+- **PR3:** Compute cohort baselines by position/career-year/age-bucket slices.
+- **PR4:** Add trajectory scoring and expected-vs-actual labels.

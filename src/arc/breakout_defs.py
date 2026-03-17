@@ -1,25 +1,48 @@
-"""Scaffold event/finish classification helpers for ARC."""
+"""Event and finish classification helpers for ARC tables."""
+
+from __future__ import annotations
+
+import pandas as pd
+
+from arc.config import (
+    ELITE_SEASON_FINISH_CUTOFFS,
+    STARTER_SEASON_FINISH_CUTOFFS,
+    WEEKLY_DUD_FINISH_THRESHOLDS,
+    WEEKLY_SPIKE_FINISH_THRESHOLDS,
+)
 
 
 def is_spike_week(position: str, weekly_pos_finish: int | None) -> bool:
-    """Return spike-week classification using provisional positional thresholds."""
+    """Return whether a weekly finish qualifies as a position spike week."""
 
-    _ = (position, weekly_pos_finish)
-    return False
+    if pd.isna(weekly_pos_finish):
+        return False
+    threshold = WEEKLY_SPIKE_FINISH_THRESHOLDS.get(str(position).upper())
+    return threshold is not None and int(weekly_pos_finish) <= threshold
 
 
 def is_dud_week(position: str, weekly_pos_finish: int | None) -> bool:
-    """Return dud-week classification using provisional positional thresholds."""
+    """Return whether a weekly finish qualifies as a position dud week."""
 
-    _ = (position, weekly_pos_finish)
-    return False
+    if pd.isna(weekly_pos_finish):
+        return False
+    threshold = WEEKLY_DUD_FINISH_THRESHOLDS.get(str(position).upper())
+    return threshold is not None and int(weekly_pos_finish) > threshold
 
 
 def classify_season_finish(position: str, seasonal_finish: int | None) -> str | None:
-    """Classify season finish tier (elite/starter/other).
+    """Classify season finish into top_tier/starter_tier/other."""
 
-    PR1 returns `None` pending finalized threshold logic.
-    """
+    if pd.isna(seasonal_finish):
+        return None
 
-    _ = (position, seasonal_finish)
-    return None
+    pos = str(position).upper()
+    finish = int(seasonal_finish)
+    elite_cutoff = ELITE_SEASON_FINISH_CUTOFFS.get(pos)
+    starter_cutoff = STARTER_SEASON_FINISH_CUTOFFS.get(pos)
+
+    if elite_cutoff is not None and finish <= elite_cutoff:
+        return "top_tier"
+    if starter_cutoff is not None and finish <= starter_cutoff:
+        return "starter_tier"
+    return "other"
