@@ -1,3 +1,5 @@
+import warnings
+
 import pandas as pd
 
 from arc.metrics import (
@@ -98,3 +100,16 @@ def test_compute_career_year_baselines_includes_null_age_bucket_rows() -> None:
     assert round(float(wr_row["avg_ppg"]), 4) == round((11.0 + 7.5 + 5.0) / 3, 4)
     assert bool(wr_row["is_small_sample"]) is False
     assert wr_row["small_sample_threshold"] == 2
+
+
+def test_compute_cohort_baselines_emits_no_groupby_apply_deprecation_warning() -> None:
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _ = compute_cohort_baselines(
+            _sample_player_seasons(),
+            _sample_player_weeks(),
+            small_sample_threshold=3,
+        )
+
+    warning_messages = [str(w.message) for w in caught]
+    assert not any("DataFrameGroupBy.apply operated on the grouping columns" in msg for msg in warning_messages)
