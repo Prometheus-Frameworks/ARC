@@ -162,12 +162,15 @@ def build_baselines(
     export_csv(career_year_baselines, career_year_csv)
 
     parquet_written: list[str] = []
-    try:
-        cohort_parquet = output_dir / "arc_cohort_baselines.parquet"
-        export_parquet(cohort_baselines, cohort_parquet)
-        parquet_written.append(str(cohort_parquet))
-    except RuntimeError:
-        pass
+    for df, output in (
+        (cohort_baselines, output_dir / "arc_cohort_baselines.parquet"),
+        (career_year_baselines, output_dir / "arc_career_year_baselines.parquet"),
+    ):
+        try:
+            export_parquet(df, output)
+            parquet_written.append(str(output))
+        except RuntimeError:
+            continue
 
     typer.echo("Built ARC baseline summary tables")
     typer.echo(
@@ -179,7 +182,7 @@ def build_baselines(
     if parquet_written:
         typer.echo("Parquet outputs: " + ", ".join(parquet_written))
     else:
-        typer.echo("Parquet output skipped (install pyarrow to enable)")
+        typer.echo("Parquet outputs skipped (install pyarrow to enable)")
 
 
 if __name__ == "__main__":

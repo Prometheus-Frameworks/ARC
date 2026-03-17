@@ -79,7 +79,7 @@ PR3 reads PR2 outputs and builds cohort expectation tables:
 
 - Source tables: `outputs/cohort_tables/arc_player_weeks.csv` and `outputs/cohort_tables/arc_player_seasons.csv`.
 - Primary baseline output: `outputs/summary_tables/arc_cohort_baselines.csv` (and parquet when available).
-- Fallback baseline output: `outputs/summary_tables/arc_career_year_baselines.csv`.
+- Fallback baseline output: `outputs/summary_tables/arc_career_year_baselines.csv` (and parquet when available).
 
 ### Grouping logic
 

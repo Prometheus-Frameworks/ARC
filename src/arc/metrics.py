@@ -86,25 +86,26 @@ def _compute_grouped_baselines(
     group_columns: list[str],
     small_sample_threshold: int,
 ) -> pd.DataFrame:
-    grouped = merged_seasons_df.groupby(group_columns, dropna=False)
+    enriched = merged_seasons_df.copy()
+    enriched["_elite_finish_numeric"] = enriched["top_tier_finish"].astype(float)
+    enriched["_starter_finish_numeric"] = enriched["starter_tier_finish"].astype(float)
 
-    baseline = grouped.apply(
-        lambda group: pd.Series(
-            {
-                "sample_size": int(len(group)),
-                "avg_ppg": safe_numeric_summary(group["ppg"])["mean"],
-                "median_ppg": safe_numeric_summary(group["ppg"])["median"],
-                "ppg_std": safe_numeric_summary(group["ppg"])["std"],
-                "avg_season_points": safe_numeric_summary(group["season_points"])["mean"],
-                "median_season_points": safe_numeric_summary(group["season_points"])["median"],
-                "avg_games_played": safe_numeric_summary(group["games_played"])["mean"],
-                "spike_rate": safe_rate_mean(group["spike_rate_player_season"]),
-                "dud_rate": safe_rate_mean(group["dud_rate_player_season"]),
-                "elite_finish_rate": safe_rate_mean(group["top_tier_finish"].astype(float)),
-                "starter_finish_rate": safe_rate_mean(group["starter_tier_finish"].astype(float)),
-            }
-        )
+    grouped = enriched.groupby(group_columns, dropna=False)
+    sample_sizes = grouped.size().rename("sample_size").reset_index()
+    metric_aggregates = grouped.agg(
+        avg_ppg=("ppg", "mean"),
+        median_ppg=("ppg", "median"),
+        ppg_std=("ppg", "std"),
+        avg_season_points=("season_points", "mean"),
+        median_season_points=("season_points", "median"),
+        avg_games_played=("games_played", "mean"),
+        spike_rate=("spike_rate_player_season", safe_rate_mean),
+        dud_rate=("dud_rate_player_season", safe_rate_mean),
+        elite_finish_rate=("_elite_finish_numeric", safe_rate_mean),
+        starter_finish_rate=("_starter_finish_numeric", safe_rate_mean),
     ).reset_index()
+
+    baseline = sample_sizes.merge(metric_aggregates, on=group_columns, how="left")
 
     baseline["small_sample_threshold"] = int(small_sample_threshold)
     baseline["is_small_sample"] = baseline["sample_size"] < small_sample_threshold
