@@ -13,7 +13,7 @@ WEEKLY_SPIKE_FINISH_THRESHOLDS: Final[dict[str, int]] = {
 }
 
 WEEKLY_DUD_FINISH_THRESHOLDS: Final[dict[str, int]] = {
-    "QB": 20,
+    "QB": 18,
     "RB": 36,
     "WR": 36,
     "TE": 18,

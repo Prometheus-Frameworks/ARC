@@ -1,29 +1,25 @@
-# Metric Definitions (PR1)
+# Metric Definitions
 
-This document defines ARC's initial metric vocabulary. Threshold values are provisional defaults in PR1.
+## Weekly table metrics (`arc_player_weeks`)
 
-## Core metrics
+- **weekly_pos_finish**
+  - Positional finish rank for a player within the same `season + week + position`, ranked by weekly fantasy points descending with `min` tie ranking.
+- **spike_flag**
+  - Boolean indicating a week with finish at or above the position spike threshold (for example QB <= 8, RB/WR <= 12, TE <= 6).
+- **dud_flag**
+  - Boolean indicating a week with finish below the position dud threshold (for example QB > 18, RB/WR > 36, TE > 18).
 
-- **PPG (points per game)**
-  - `season_points / games_played` for season-level analysis.
-- **Spike week rate**
-  - Share of player-weeks classified as spikes using position-specific weekly finish cutoffs.
-- **Dud week rate**
-  - Share of player-weeks classified as duds using position-specific weekly finish cutoffs.
-- **Elite finish rate**
-  - Cohort share of player-seasons ending inside position-level elite cutoff.
-- **Starter finish rate**
-  - Cohort share of player-seasons ending inside starter-level cutoff.
+## Season table metrics (`arc_player_seasons`)
 
-## Trajectory metrics
-
-- **Delta vs expected**
-  - `actual_ppg - expected_ppg` relative to cohort baseline.
-- **Percentile within cohort**
-  - Percentile rank of actual performance among cohort peers.
-- **Trajectory label**
-  - Categorical descriptor (for example: rising, stable, declining) based on deviation and percentile context.
-
-## PR1 provisional threshold note
-
-Current spike/dud and elite/starter cutoffs are initial defaults intended to validate structure. They will be calibrated in future PRs using historical distributions.
+- **games_played**
+  - Count of weekly rows with non-null fantasy points for the player-season.
+- **season_points**
+  - Sum of weekly fantasy points across all valid weeks in a player-season.
+- **ppg**
+  - `season_points / games_played` (null when `games_played` is zero).
+- **positional_finish**
+  - Seasonal finish rank within `season + position`, ranked by `season_points` descending with `min` tie ranking.
+- **top_tier_finish**
+  - True when `positional_finish` is at or above position elite season threshold.
+- **starter_tier_finish**
+  - True when `positional_finish` is at or above starter threshold (includes top-tier seasons).
