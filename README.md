@@ -13,7 +13,13 @@ ARC is a historical fantasy football cohort engine designed for research-grade a
 python -m arc.cli build-cohorts --input data/raw/player_weekly_history.csv
 ```
 
-3. Outputs are written to `outputs/cohort_tables/`:
+3. Build baseline summary tables from cohort outputs:
+
+```bash
+python -m arc.cli build-baselines
+```
+
+4. Outputs are written to `outputs/cohort_tables/` and `outputs/summary_tables/`:
    - `arc_player_weeks.csv`
    - `arc_player_seasons.csv`
    - parquet mirrors when a parquet engine (for example `pyarrow`) is installed
@@ -29,6 +35,8 @@ python -m arc.cli validate-config
 
 - `arc_player_weeks`: one row per player-week including weekly positional finish and spike/dud flags.
 - `arc_player_seasons`: one row per player-season including games played, season points, ppg, and seasonal positional finish.
+- `arc_cohort_baselines`: cohort-level baselines by `position + career_year + age_bucket`.
+- `arc_career_year_baselines`: fallback baselines by `position + career_year`.
 
 ## Roadmap
 
