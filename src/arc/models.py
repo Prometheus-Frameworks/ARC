@@ -50,10 +50,35 @@ class ArcCohortBaseline(BaseModel):
     avg_ppg: float | None = None
     median_ppg: float | None = None
     ppg_std: float | None = None
+    avg_season_points: float | None = None
+    median_season_points: float | None = None
+    avg_games_played: float | None = None
     spike_rate: float | None = None
     dud_rate: float | None = None
     elite_finish_rate: float | None = None
     starter_finish_rate: float | None = None
+    is_small_sample: bool
+    small_sample_threshold: int
+
+
+class ArcCareerYearBaseline(BaseModel):
+    """Fallback cohort statistics by position/career-year only."""
+
+    position: str
+    career_year: int
+    sample_size: int
+    avg_ppg: float | None = None
+    median_ppg: float | None = None
+    ppg_std: float | None = None
+    avg_season_points: float | None = None
+    median_season_points: float | None = None
+    avg_games_played: float | None = None
+    spike_rate: float | None = None
+    dud_rate: float | None = None
+    elite_finish_rate: float | None = None
+    starter_finish_rate: float | None = None
+    is_small_sample: bool
+    small_sample_threshold: int
 
 
 class ArcTrajectoryScore(BaseModel):
