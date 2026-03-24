@@ -25,7 +25,13 @@ python -m arc.cli build-baselines
 python -m arc.cli build-promoted-handoff
 ```
 
-5. Outputs are written to `outputs/cohort_tables/`, `outputs/summary_tables/`, and `outputs/promoted/`:
+5. Validate the promoted handoff contract before downstream ingestion:
+
+```bash
+python -m arc.cli validate-promoted-handoff --input-path outputs/promoted/arc_promoted_handoff.csv
+```
+
+6. Outputs are written to `outputs/cohort_tables/`, `outputs/summary_tables/`, and `outputs/promoted/`:
    - `arc_player_weeks.csv`
    - `arc_player_seasons.csv`
    - `arc_promoted_handoff.csv` (canonical downstream contract)

@@ -4,6 +4,7 @@ ARC now publishes one downstream handoff artifact:
 
 - **Canonical artifact path:** `outputs/promoted/arc_promoted_handoff.csv`
 - **Build command:** `python -m arc.cli build-promoted-handoff`
+- **Validation command:** `python -m arc.cli validate-promoted-handoff --input-path outputs/promoted/arc_promoted_handoff.csv`
 
 This file is the smallest honest handoff ARC can guarantee today. It is a deterministic export of already-computed historical baselines. ARC does **not** add forecasting or synthetic confidence beyond these cohort summaries.
 
@@ -33,6 +34,26 @@ This file is the smallest honest handoff ARC can guarantee today. It is a determ
 | `small_sample_threshold` | int | Threshold used to set `is_small_sample`. |
 
 ## Consumer expectations
+
+## Contract validation (minimal gate)
+
+ARC now enforces a minimal validation gate for promoted handoff integrity. Validation is run:
+
+1. automatically during `build-promoted-handoff` before export, and
+2. explicitly via `validate-promoted-handoff` for existing artifacts.
+
+Current required checks:
+
+- required columns from the promoted contract are present
+- `baseline_level` values are only `cohort` or `career_year_fallback`
+- `resolution_priority` exactly matches canonical mapping (`cohort=1`, `career_year_fallback=2`)
+- duplicate `cohort` rows are rejected for the same (`position`, `career_year`, `age_bucket`)
+- duplicate `career_year_fallback` rows are rejected for the same (`position`, `career_year`)
+- impossible baseline/age combinations are rejected:
+  - `cohort` rows must have non-null `age_bucket`
+  - `career_year_fallback` rows must have null `age_bucket`
+
+Validation errors are raised with row-key context so malformed artifacts can be fixed quickly.
 
 Downstream consumers should trust this file as **historical baseline context** only.
 
