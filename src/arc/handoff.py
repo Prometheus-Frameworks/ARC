@@ -39,6 +39,90 @@ RESOLUTION_PRIORITY = {
 }
 
 
+def validate_promoted_handoff(promoted_handoff: pd.DataFrame) -> None:
+    """Validate promoted handoff contract invariants.
+
+    Raises:
+        ValueError: If required contract rules are violated.
+    """
+
+    missing_columns = [
+        column for column in PROMOTED_HANDOFF_COLUMNS if column not in promoted_handoff.columns
+    ]
+    if missing_columns:
+        raise ValueError(
+            "Promoted handoff is missing required columns: "
+            + ", ".join(sorted(missing_columns))
+        )
+
+    baseline_levels = set(promoted_handoff["baseline_level"].dropna().unique())
+    allowed_levels = set(RESOLUTION_PRIORITY)
+    invalid_levels = sorted(baseline_levels - allowed_levels)
+    if invalid_levels:
+        raise ValueError(
+            "Promoted handoff has invalid baseline_level values: "
+            + ", ".join(invalid_levels)
+            + ". Allowed values: cohort, career_year_fallback."
+        )
+
+    invalid_resolution_rows = promoted_handoff[
+        promoted_handoff["resolution_priority"]
+        != promoted_handoff["baseline_level"].map(RESOLUTION_PRIORITY)
+    ]
+    if not invalid_resolution_rows.empty:
+        sample = invalid_resolution_rows.iloc[0]
+        raise ValueError(
+            "Promoted handoff has non-canonical resolution_priority mapping for "
+            f"baseline_level={sample['baseline_level']}: "
+            f"expected={RESOLUTION_PRIORITY.get(sample['baseline_level'])}, "
+            f"found={sample['resolution_priority']}."
+        )
+
+    cohort_rows = promoted_handoff[promoted_handoff["baseline_level"] == "cohort"]
+    cohort_missing_age = cohort_rows[cohort_rows["age_bucket"].isna()]
+    if not cohort_missing_age.empty:
+        sample = cohort_missing_age.iloc[0]
+        raise ValueError(
+            "Promoted handoff cohort rows must include non-null age_bucket. "
+            "Example invalid key: "
+            f"position={sample['position']}, career_year={sample['career_year']}."
+        )
+
+    fallback_rows = promoted_handoff[
+        promoted_handoff["baseline_level"] == "career_year_fallback"
+    ]
+    fallback_with_age = fallback_rows[fallback_rows["age_bucket"].notna()]
+    if not fallback_with_age.empty:
+        sample = fallback_with_age.iloc[0]
+        raise ValueError(
+            "Promoted handoff career_year_fallback rows must have null age_bucket. "
+            "Example invalid key: "
+            f"position={sample['position']}, career_year={sample['career_year']}, "
+            f"age_bucket={sample['age_bucket']}."
+        )
+
+    duplicate_cohorts = cohort_rows.duplicated(
+        subset=["position", "career_year", "age_bucket"], keep=False
+    )
+    if duplicate_cohorts.any():
+        sample = cohort_rows.loc[duplicate_cohorts].iloc[0]
+        raise ValueError(
+            "Promoted handoff has duplicate cohort rows for key "
+            f"(position, career_year, age_bucket)=({sample['position']}, "
+            f"{sample['career_year']}, {sample['age_bucket']})."
+        )
+
+    duplicate_fallbacks = fallback_rows.duplicated(
+        subset=["position", "career_year"], keep=False
+    )
+    if duplicate_fallbacks.any():
+        sample = fallback_rows.loc[duplicate_fallbacks].iloc[0]
+        raise ValueError(
+            "Promoted handoff has duplicate career_year_fallback rows for key "
+            f"(position, career_year)=({sample['position']}, {sample['career_year']})."
+        )
+
+
 def utc_timestamp_now() -> str:
     """Return an ISO-8601 UTC timestamp string."""
 
@@ -74,7 +158,9 @@ def build_promoted_handoff(
     promoted["build_timestamp_utc"] = timestamp
     promoted["arc_version"] = arc_version
 
-    return promoted.reindex(columns=PROMOTED_HANDOFF_COLUMNS)
+    promoted = promoted.reindex(columns=PROMOTED_HANDOFF_COLUMNS)
+    validate_promoted_handoff(promoted)
+    return promoted
 
 
 def resolve_promoted_baseline(

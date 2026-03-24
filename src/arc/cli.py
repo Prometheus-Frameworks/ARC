@@ -24,7 +24,7 @@ from arc.config import (
     WEEKLY_SPIKE_FINISH_THRESHOLDS,
 )
 from arc.exports import export_csv, export_parquet
-from arc.handoff import build_promoted_handoff
+from arc.handoff import build_promoted_handoff, validate_promoted_handoff
 from arc.metrics import compute_career_year_baselines, compute_cohort_baselines
 
 DEFAULT_INPUT_PATH = Path("data/raw/player_weekly_history.csv")
@@ -226,6 +226,27 @@ def build_promoted_handoff_command(
     typer.echo("Built ARC promoted handoff artifact")
     typer.echo(f"Rows: {len(handoff):,}")
     typer.echo(f"Output: {output_path}")
+
+
+@app.command("validate-promoted-handoff")
+def validate_promoted_handoff_command(
+    input_path: Path = typer.Option(
+        DEFAULT_PROMOTED_HANDOFF_PATH,
+        "--input-path",
+        help="Path to promoted handoff (.csv/.parquet).",
+    ),
+) -> None:
+    """Validate promoted handoff contract requirements."""
+
+    try:
+        promoted_handoff = _read_table(input_path)
+        validate_promoted_handoff(promoted_handoff)
+    except (FileNotFoundError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    typer.echo("Promoted handoff validation passed")
+    typer.echo(f"Rows: {len(promoted_handoff):,}")
+    typer.echo(f"Input: {input_path}")
 
 
 
