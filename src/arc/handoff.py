@@ -26,11 +26,17 @@ PROMOTED_HANDOFF_COLUMNS = [
     "build_timestamp_utc",
     "arc_version",
     "baseline_level",
+    "resolution_priority",
     "position",
     "career_year",
     "age_bucket",
     *BASELINE_METRIC_COLUMNS,
 ]
+
+RESOLUTION_PRIORITY = {
+    "cohort": 1,
+    "career_year_fallback": 2,
+}
 
 
 def utc_timestamp_now() -> str:
@@ -57,9 +63,11 @@ def build_promoted_handoff(
 
     cohort_rows = cohort_baselines.copy()
     cohort_rows["baseline_level"] = "cohort"
+    cohort_rows["resolution_priority"] = RESOLUTION_PRIORITY["cohort"]
 
     fallback_rows = career_year_baselines.copy()
     fallback_rows["baseline_level"] = "career_year_fallback"
+    fallback_rows["resolution_priority"] = RESOLUTION_PRIORITY["career_year_fallback"]
     fallback_rows["age_bucket"] = pd.NA
 
     promoted = pd.concat([cohort_rows, fallback_rows], ignore_index=True)
@@ -67,3 +75,41 @@ def build_promoted_handoff(
     promoted["arc_version"] = arc_version
 
     return promoted.reindex(columns=PROMOTED_HANDOFF_COLUMNS)
+
+
+def resolve_promoted_baseline(
+    promoted_handoff: pd.DataFrame,
+    *,
+    position: str,
+    career_year: int,
+    age_bucket: str | None,
+) -> pd.Series:
+    """Resolve the deterministic best baseline row from promoted handoff inputs.
+
+    Selection order:
+    1. Prefer `cohort` row matching position + career_year + age_bucket.
+    2. Fall back to `career_year_fallback` row matching position + career_year.
+
+    Raises:
+        KeyError: If no matching cohort or fallback baseline exists.
+    """
+
+    scoped = promoted_handoff[
+        (promoted_handoff["position"] == position)
+        & (promoted_handoff["career_year"] == career_year)
+    ]
+
+    cohort_match = scoped[
+        (scoped["baseline_level"] == "cohort") & (scoped["age_bucket"] == age_bucket)
+    ]
+    if not cohort_match.empty:
+        return cohort_match.sort_values("resolution_priority", ascending=True).iloc[0]
+
+    fallback_match = scoped[scoped["baseline_level"] == "career_year_fallback"]
+    if not fallback_match.empty:
+        return fallback_match.sort_values("resolution_priority", ascending=True).iloc[0]
+
+    raise KeyError(
+        "No promoted baseline found for "
+        f"position={position}, career_year={career_year}, age_bucket={age_bucket}."
+    )
