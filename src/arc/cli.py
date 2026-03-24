@@ -24,6 +24,7 @@ from arc.config import (
     WEEKLY_SPIKE_FINISH_THRESHOLDS,
 )
 from arc.exports import export_csv, export_parquet
+from arc.handoff import build_promoted_handoff
 from arc.metrics import compute_career_year_baselines, compute_cohort_baselines
 
 DEFAULT_INPUT_PATH = Path("data/raw/player_weekly_history.csv")
@@ -31,6 +32,10 @@ DEFAULT_OUTPUT_DIR = Path("outputs/cohort_tables")
 DEFAULT_SUMMARY_DIR = Path("outputs/summary_tables")
 DEFAULT_PLAYER_WEEKS_PATH = DEFAULT_OUTPUT_DIR / "arc_player_weeks.csv"
 DEFAULT_PLAYER_SEASONS_PATH = DEFAULT_OUTPUT_DIR / "arc_player_seasons.csv"
+DEFAULT_PROMOTED_DIR = Path("outputs/promoted")
+DEFAULT_COHORT_BASELINES_PATH = DEFAULT_SUMMARY_DIR / "arc_cohort_baselines.csv"
+DEFAULT_CAREER_BASELINES_PATH = DEFAULT_SUMMARY_DIR / "arc_career_year_baselines.csv"
+DEFAULT_PROMOTED_HANDOFF_PATH = DEFAULT_PROMOTED_DIR / "arc_promoted_handoff.csv"
 
 app = typer.Typer(help="ARC command line interface.")
 
@@ -183,6 +188,45 @@ def build_baselines(
         typer.echo("Parquet outputs: " + ", ".join(parquet_written))
     else:
         typer.echo("Parquet outputs skipped (install pyarrow to enable)")
+
+
+@app.command("build-promoted-handoff")
+def build_promoted_handoff_command(
+    cohort_baselines_path: Path = typer.Option(
+        DEFAULT_COHORT_BASELINES_PATH,
+        "--cohort-baselines-path",
+        help="Path to arc_cohort_baselines (.csv/.parquet).",
+    ),
+    career_year_baselines_path: Path = typer.Option(
+        DEFAULT_CAREER_BASELINES_PATH,
+        "--career-year-baselines-path",
+        help="Path to arc_career_year_baselines (.csv/.parquet).",
+    ),
+    output_path: Path = typer.Option(
+        DEFAULT_PROMOTED_HANDOFF_PATH,
+        "--output-path",
+        help="Canonical promoted handoff artifact path.",
+    ),
+) -> None:
+    """Build the single promoted handoff artifact for downstream consumers."""
+
+    try:
+        cohort_baselines = _read_table(cohort_baselines_path)
+        career_year_baselines = _read_table(career_year_baselines_path)
+    except (FileNotFoundError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    handoff = build_promoted_handoff(
+        cohort_baselines,
+        career_year_baselines,
+        arc_version=__version__,
+    )
+    export_csv(handoff, output_path)
+
+    typer.echo("Built ARC promoted handoff artifact")
+    typer.echo(f"Rows: {len(handoff):,}")
+    typer.echo(f"Output: {output_path}")
+
 
 
 if __name__ == "__main__":

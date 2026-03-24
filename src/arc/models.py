@@ -95,3 +95,27 @@ class ArcTrajectoryScore(BaseModel):
     delta_vs_expected: float | None = None
     percentile_within_cohort: float | None = None
     trajectory_label: str | None = None
+
+
+class ArcPromotedHandoff(BaseModel):
+    """Single promoted handoff row for downstream ARC consumers."""
+
+    build_timestamp_utc: str
+    arc_version: str
+    baseline_level: str
+    position: str
+    career_year: int
+    age_bucket: str | None = None
+    sample_size: int
+    avg_ppg: float | None = None
+    median_ppg: float | None = None
+    ppg_std: float | None = None
+    avg_season_points: float | None = None
+    median_season_points: float | None = None
+    avg_games_played: float | None = None
+    spike_rate: float | None = None
+    dud_rate: float | None = None
+    elite_finish_rate: float | None = None
+    starter_finish_rate: float | None = None
+    is_small_sample: bool
+    small_sample_threshold: int
