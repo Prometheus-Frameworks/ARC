@@ -1,10 +1,15 @@
 from pathlib import Path
 
 import pandas as pd
+import pytest
 from typer.testing import CliRunner
 
 from arc.cli import app
-from arc.handoff import PROMOTED_HANDOFF_COLUMNS, build_promoted_handoff
+from arc.handoff import (
+    PROMOTED_HANDOFF_COLUMNS,
+    build_promoted_handoff,
+    resolve_promoted_baseline,
+)
 
 
 def test_build_promoted_handoff_includes_cohort_and_fallback_rows() -> None:
@@ -57,6 +62,7 @@ def test_build_promoted_handoff_includes_cohort_and_fallback_rows() -> None:
 
     assert list(handoff.columns) == PROMOTED_HANDOFF_COLUMNS
     assert handoff["baseline_level"].tolist() == ["cohort", "career_year_fallback"]
+    assert handoff["resolution_priority"].tolist() == [1, 2]
     assert pd.isna(handoff.loc[1, "age_bucket"])
     assert handoff["is_small_sample"].tolist() == [True, False]
 
@@ -130,3 +136,55 @@ def test_build_promoted_handoff_cli_writes_canonical_output(tmp_path: Path) -> N
     exported = pd.read_csv(output_path)
     assert list(exported.columns) == PROMOTED_HANDOFF_COLUMNS
     assert set(exported["baseline_level"]) == {"cohort", "career_year_fallback"}
+
+
+def test_resolve_promoted_baseline_prefers_cohort_then_fallback() -> None:
+    promoted = pd.DataFrame(
+        {
+            "baseline_level": ["cohort", "career_year_fallback"],
+            "resolution_priority": [1, 2],
+            "position": ["WR", "WR"],
+            "career_year": [2, 2],
+            "age_bucket": ["24-25", pd.NA],
+            "sample_size": [5, 30],
+        }
+    )
+
+    cohort_row = resolve_promoted_baseline(
+        promoted,
+        position="WR",
+        career_year=2,
+        age_bucket="24-25",
+    )
+    assert cohort_row["baseline_level"] == "cohort"
+    assert cohort_row["sample_size"] == 5
+
+    fallback_row = resolve_promoted_baseline(
+        promoted,
+        position="WR",
+        career_year=2,
+        age_bucket="26-27",
+    )
+    assert fallback_row["baseline_level"] == "career_year_fallback"
+    assert fallback_row["sample_size"] == 30
+
+
+def test_resolve_promoted_baseline_raises_when_no_matching_rows() -> None:
+    promoted = pd.DataFrame(
+        {
+            "baseline_level": ["cohort"],
+            "resolution_priority": [1],
+            "position": ["WR"],
+            "career_year": [2],
+            "age_bucket": ["24-25"],
+            "sample_size": [5],
+        }
+    )
+
+    with pytest.raises(KeyError, match="No promoted baseline found"):
+        resolve_promoted_baseline(
+            promoted,
+            position="RB",
+            career_year=2,
+            age_bucket="24-25",
+        )

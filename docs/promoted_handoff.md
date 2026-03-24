@@ -14,6 +14,7 @@ This file is the smallest honest handoff ARC can guarantee today. It is a determ
 | `build_timestamp_utc` | string (ISO-8601 UTC) | Build timestamp shared by all rows in one run. |
 | `arc_version` | string | ARC package version used to produce the file. |
 | `baseline_level` | string | `cohort` or `career_year_fallback`. |
+| `resolution_priority` | int | Canonical selection order (`1=cohort`, `2=career_year_fallback`). |
 | `position` | string | Offensive position key (RB/WR/TE/QB). |
 | `career_year` | int | Career year bucket key. |
 | `age_bucket` | string or null | Present for `cohort`; null for `career_year_fallback`. |
@@ -33,11 +34,20 @@ This file is the smallest honest handoff ARC can guarantee today. It is a determ
 
 ## Consumer expectations
 
-Downstream consumers should trust this file as **historical baseline context** only:
+Downstream consumers should trust this file as **historical baseline context** only.
 
-- Use `cohort` rows when age-bucket slices are available and stable enough for your use case.
-- Use `career_year_fallback` rows when age-bucket cohorts are unavailable or too sparse.
-- Respect `is_small_sample` as an explicit warning; ARC does not hide sparse cohorts.
+Canonical row resolution rule for one player context (`position`, `career_year`, optional `age_bucket`):
+
+1. Filter to rows matching `position` + `career_year`.
+2. If any `cohort` row matches the input `age_bucket`, choose that row (`resolution_priority=1`).
+3. Otherwise choose the `career_year_fallback` row (`resolution_priority=2`).
+4. Keep `is_small_sample` as-is from the selected row; do not treat fallback as a confidence upgrade.
+
+Concrete example:
+
+- Input context: `position=WR`, `career_year=2`, `age_bucket=26-27`
+- If no `cohort` row exists for `26-27`, select the `career_year_fallback` row for `WR + 2`.
+- If that fallback row has `is_small_sample=true`, it remains explicitly small-sample.
 
 ## Explicitly out of scope (today)
 

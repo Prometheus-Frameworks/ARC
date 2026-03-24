@@ -44,7 +44,7 @@ python -m arc.cli validate-config
 - `arc_player_seasons`: one row per player-season including games played, season points, ppg, and seasonal positional finish.
 - `arc_cohort_baselines`: cohort-level baselines by `position + career_year + age_bucket`.
 - `arc_career_year_baselines`: fallback baselines by `position + career_year`.
-- `arc_promoted_handoff`: single promoted-lab handoff artifact with `cohort` and `career_year_fallback` baseline rows for downstream systems.
+- `arc_promoted_handoff`: single promoted-lab handoff artifact with deterministic resolution order (`cohort` first, then `career_year_fallback`) for downstream systems.
 
 ## Roadmap
 
