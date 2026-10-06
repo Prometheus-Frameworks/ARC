@@ -1,5 +1,7 @@
 # ARC: Age and Role Curves
 
+> **[TIBER Now — what works, what we’re building, and what’s still conceptual](https://github.com/Prometheus-Frameworks/TIBER-Fantasy/blob/main/docs/TIBER_NOW.md)**
+
 ARC is a historical fantasy football cohort engine designed for research-grade analysis of player outcomes over time. It models performance relative to peers grouped by **position**, **career year**, and **age bucket**.
 
 ## Quick start
